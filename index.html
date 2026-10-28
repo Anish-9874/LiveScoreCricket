@@ -120,9 +120,17 @@ details summary{cursor:pointer;font-size:15px;letter-spacing:1.5px;color:var(--m
 @keyframes roll{to{transform:rotate(1440deg)}}
 @keyframes fly{to{transform:translate(var(--x),-380px) rotate(var(--r));opacity:0}}
 @media(prefers-reduced-motion:reduce){.rays,.mq span,.vsb,.evl,.evt{animation:none!important}}
+/* live sync */
+#conn{display:inline-block;padding:5px 12px;border-radius:99px;font-size:15px;letter-spacing:1px;background:#2b3f6b;color:#fff;cursor:pointer}
+#conn.ok{background:#12a53a}#conn.bad{background:#e32232}
+body.display{background:#000;overflow:hidden}
+body.display #ctl,body.display #toggle,body.display #fsb{display:none}
+body.display #wrap{max-width:none;padding:0}
+body.display #vp{width:100vw;height:100vh;aspect-ratio:auto;border-radius:0;background:#000}
+body.display:not(.synced) #vp{visibility:hidden}
 </style>
 </head>
-<body>
+<body class="{{ mode }}">
 <div id="wrap">
 <div id="vp"><div id="board">
  <div class="nb rA">
@@ -152,6 +160,7 @@ details summary{cursor:pointer;font-size:15px;letter-spacing:1.5px;color:var(--m
 <canvas id="fx"></canvas><div id="modal"></div></div>
 
 <div id="ctl">
+ <div class="panel"><span id="conn">● CONNECTING…</span> <small style="color:var(--mut)">&nbsp;Show on the laptop / stream: <b id="durl"></b></small></div>
  <div class="panel"><h3>1) SCORING — press after every ball · keys: 0 1 2 3 4 6, W wicket, D wide, N no-ball, U undo, S swap, F fullscreen</h3><div class="btns">
   <button data-r="0">0</button><button data-r="1">1</button><button data-r="2">2</button><button data-r="3">3</button><button class="b4" data-r="4">4</button><button class="b6" data-r="6">6</button>
   <button class="bw" data-a="W">Wicket</button><button data-a="Wd">Wide</button><button data-a="Nb">No ball</button><button data-a="swap">Swap strike</button><button class="bu" data-a="undo">Undo</button></div></div>
@@ -166,14 +175,14 @@ details summary{cursor:pointer;font-size:15px;letter-spacing:1.5px;color:var(--m
 </div>
 <input type="file" id="file" accept="image/*" hidden>
 <script>
-const $=id=>document.getElementById(id),sleep=ms=>new Promise(r=>setTimeout(r,ms)),EV=5600;
+const MODE="{{ mode }}",$=id=>document.getElementById(id),sleep=ms=>new Promise(r=>setTimeout(r,ms)),EV=5600;
 const NM=[["A Mathews","A Russell","B Ahmad","R Paudel","K Bhurtel","D Khadka","P Rana","S Karki","N Thapa","A Gurung","M Shah"],["K S Airee","B Sharma","S Ranjane","N Saud","P GC","R Singh","T Magar","L Oli","D Joshi","H Rawat","C Bista"]];
 const mk=(code,name,color,ns)=>({code,name,color,p:ns.map(n=>({n,r:0,b:0,f:0,s:0,o:"",R:0,W:0,B:0}))});
 const DEF=()=>({title:"CHITWAN RHINOS VS BIRATNAGAR KINGS",info1:"SUBSCRIBE & SHARE",info2:"YOUR SPONSOR HERE",spon:"CRICKET SANSAR",inn:1,bt:0,oppScore:0,oppW:0,target:0,maxOvers:20,score:0,wk:0,balls:0,cur:[0,1],strike:0,bi:0,lb:-1,needBowler:false,over:[],prev:[],pr:0,pb:0,lastW:"-",last:"MATCH READY",status:"ready",won:0,
  teams:[mk("BK","Biratnagar Kings","#e11d2e",NM[0]),mk("CWR","Chitwan Rhinos","#2aa7e8",NM[1])]});
 let S=DEF(),H=[],IMG={},busy=false;
-try{const x=localStorage.getItem("cs5_state");if(x)S=Object.assign(S,JSON.parse(x));const i=localStorage.getItem("cs4_img");if(i)IMG=JSON.parse(i)}catch(e){}
-const save=()=>{try{localStorage.setItem("cs5_state",JSON.stringify(S))}catch(e){}};
+try{if(MODE!="display"){const x=localStorage.getItem("cs5_state");if(x)S=Object.assign(S,JSON.parse(x));const i=localStorage.getItem("cs4_img");if(i)IMG=JSON.parse(i)}}catch(e){}
+const save=()=>{if(MODE=="display")return;try{localStorage.setItem("cs5_state",JSON.stringify(S))}catch(e){}push()};
 const BT=()=>S.teams[S.bt],BW=()=>S.teams[1-S.bt],pk=(t,i)=>"P"+t+"_"+i;
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const ov=b=>Math.floor(b/6)+"."+(b%6),fin=()=>(S.inn==2&&S.score>=S.target)||S.balls>=S.maxOvers*6||S.wk>=10;
@@ -213,7 +222,7 @@ function render(){
  else if(left<=0||S.wk>=10)m=S.score==S.target-1?`<span class="hl">MATCH TIED</span>`:`${esc(bw.code)} <span class="hl">WON!</span>`;
  else m=`${esc(bt.code)} NEED <span class="hl">${need}</span> RUNS IN <span class="cy">${left}</span> BALLS`;
  if($("msg").innerHTML!==m)$("msg").innerHTML=m;
- if(i2&&need<=0&&!S.won){S.won=1;S.last=bt.code+" WON!";confetti(220);save()}
+ if(MODE!="display"&&i2&&need<=0&&!S.won){S.won=1;S.last=bt.code+" WON!";confetti(220);save()}
  setT("rl",i2?"RRR:":"PROJ:");setT("crr",crr.toFixed(2));setT("rrr",i2?(left>0?rrr.toFixed(2):"-"):S.balls?Math.round(crr*S.maxOvers):"-");
  const n=Math.floor(S.balls/6),sl=ST[S.status]||ST.ready,
   h=(S.prev.length?`<span>OVER ${n}: ${S.prev.map(chip).join("")} = ${tot(S.prev)}</span>`:"")+`<span>OVER ${n+1}: ${S.over.map(chip).join("")}${S.over.length?" = "+tot(S.over):""}</span>`+(sl[0]?`<span><b class="pill ${sl[2]}">${sl[0]}</b></span>`:"");
@@ -254,18 +263,19 @@ const snap=()=>{H.push(JSON.stringify(S));if(H.length>200)H.shift()};
 function endOver(){if(S.balls%6==0&&S.balls>0){S.prev=S.over;S.over=[];S.strike^=1;S.status="over";S.needBowler=!fin();S.lb=S.bi}else S.status="ready"}
 async function runs(r){if(busy)return;snap();const bt=BT(),si=S.cur[S.strike],b=bt.p[si],bo=BW().p[S.bi];
  S.score+=r;b.r+=r;b.b++;if(r==4)b.f++;if(r==6)b.s++;S.balls++;bo.R+=r;bo.B++;S.over.push(String(r));S.pr+=r;S.pb++;
- S.last=r==6?"SIX":r==4?"FOUR":r==0?"DOT BALL":r+(r>1?" RUNS":" RUN");if(r%2==1)S.strike^=1;endOver();save();render();syncSetup();
- const big=r==4||r==6;if(big)showEv(r==4?"four":"six",b,S.bt,si);
+ S.last=r==6?"SIX":r==4?"FOUR":r==0?"DOT BALL":r+(r>1?" RUNS":" RUN");if(r%2==1)S.strike^=1;endOver();
+ const big=r==4||r==6;if(big)mkEv(r==4?"four":"six",S.bt,si);save();render();syncSetup();
+ if(big)showEv(r==4?"four":"six",b,S.bt,si);
  if(big||S.needBowler){busy=true;if(big)await sleep(EV+450);await bowlerCheck();busy=false;save();render()}}
 async function wicket(){if(busy)return;const type=await choose("HOW OUT?",["BOWLED","CAUGHT OUT","LBW","RUN OUT","STUMPED","HIT WICKET"].map(x=>({label:x,val:x})),true);if(!type)return;
  busy=true;snap();const si=S.cur[S.strike],slot=S.strike,p=BT().p[si],bo=BW().p[S.bi];
  p.b++;p.o=type;S.wk++;S.balls++;bo.B++;if(type!="RUN OUT")bo.W++;S.over.push("W");S.lastW=p.n+" "+p.r+" ("+p.b+")";S.pr=0;S.pb=0;S.last=type;
- endOver();save();render();syncSetup();showEv("wkt",p,S.bt,si,type);await sleep(EV+450);
+ endOver();mkEv("wkt",S.bt,si,type);save();render();syncSetup();showEv("wkt",p,S.bt,si,type);await sleep(EV+450);
  if(S.wk<10&&!fin()&&cands().length){const i=await pickBat("NEW BATTER — "+p.n+" is out",false);if(i!=null)S.cur[slot]=i}
  await bowlerCheck();busy=false;save();render()}
 function resetStats(){S.teams.forEach(t=>t.p.forEach(p=>Object.assign(p,{r:0,b:0,f:0,s:0,o:"",R:0,W:0,B:0})));Object.assign(S,{score:0,wk:0,balls:0,cur:[0,1],strike:0,bi:0,lb:-1,needBowler:false,over:[],prev:[],pr:0,pb:0,lastW:"-",last:"2ND INNINGS",status:"ready",won:0})}
 async function act(a){
- if(a=="undo"){if(H.length&&!busy)S=JSON.parse(H.pop())}
+ if(a=="undo"){if(H.length&&!busy){const ev=S.ev;S=JSON.parse(H.pop());S.ev=ev}}
  else if(a=="W")return wicket();
  else if(busy)return;
  else if(a=="swap")S.strike^=1;
@@ -281,14 +291,15 @@ $("ctl").addEventListener("click",e=>{const t=e.target.closest("button");if(!t)r
 $("toggle").onclick=()=>{const h=$("wrap").classList.toggle("hide");$("toggle").textContent=h?"Show controls":"Hide controls (for streaming)"};
 const fs=()=>{const v=$("vp");try{document.fullscreenElement?document.exitFullscreen():v.requestFullscreen().catch(()=>{})}catch(e){}};
 $("fsb").onclick=fs;
-addEventListener("keydown",e=>{if(/INPUT|TEXTAREA/.test(e.target.tagName)||e.ctrlKey||e.metaKey||e.altKey||$("modal").className)return;const k=e.key.toLowerCase();
+addEventListener("keydown",e=>{if(/INPUT|TEXTAREA/.test(e.target.tagName)||(MODE=="display"&&e.key.toLowerCase()!="f")||e.ctrlKey||e.metaKey||e.altKey||$("modal").className)return;const k=e.key.toLowerCase();
  if(k.length==1&&"012346".includes(k))runs(+k);else if(k=="w")act("W");else if(k=="d")act("Wd");else if(k=="n")act("Nb");else if(k=="u")act("undo");else if(k=="s")act("swap");else if(k=="f")fs()});
 /* uploads */
-let pend=null;document.addEventListener("click",e=>{const t=e.target.closest("[data-img]");if(t&&t.dataset.img){pend=t.dataset.img;$("file").value="";$("file").click()}});
+let pend=null;document.addEventListener("click",e=>{if(MODE=="display")return;const t=e.target.closest("[data-img]");if(t&&t.dataset.img){pend=t.dataset.img;$("file").value="";$("file").click()}});
 $("file").onchange=e=>{const f=e.target.files[0];if(!f||!pend)return;const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const c=document.createElement("canvas"),x=c.getContext("2d"),lg=pend[0]=="L";
  if(lg){const k=Math.min(240/im.width,240/im.height);c.width=im.width*k;c.height=im.height*k;x.drawImage(im,0,0,c.width,c.height);IMG[pend]=c.toDataURL("image/png")}
  else{const m=Math.min(im.width,im.height);c.width=c.height=160;x.drawImage(im,(im.width-m)/2,0,m,m,0,0,160,160);IMG[pend]=c.toDataURL("image/jpeg",.82)}
  try{localStorage.setItem("cs4_img",JSON.stringify(IMG))}catch(e){}
+ pushImgs({[pend]:IMG[pend]});
  document.querySelectorAll(`img[data-img="${pend}"]`).forEach(i=>i.src=IMG[pend]);render()};im.src=r.result};r.readAsDataURL(f)};
 /* confetti (drawn inside the board viewport so it also shows in fullscreen) */
 const cv=$("fx"),cx=cv.getContext("2d");let P=[],on=false;
@@ -299,7 +310,64 @@ function tick(){cx.clearRect(0,0,cv.width,cv.height);P=P.filter(p=>p.l>0);
  P.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=p.g;p.l--;p.r+=.2;cx.globalAlpha=Math.min(1,p.l/30);cx.fillStyle=p.c;cx.save();cx.translate(p.x,p.y);cx.rotate(p.r);cx.fillRect(-p.s/2,-p.s/4,p.s,p.s/2);cx.restore()});
  if(P.length)requestAnimationFrame(tick);else{on=false;cx.clearRect(0,0,cv.width,cv.height)}}
 const fit=()=>{const v=$("vp"),w=v.clientWidth,h=v.clientHeight,k=Math.min(w/1280,h/720),b=$("board");b.style.setProperty("--k",k);b.style.transform=`scale(${k})`;b.style.left=(w-1280*k)/2+"px";b.style.top=(h-720*k)/2+"px"};
-new ResizeObserver(fit).observe($("vp"));fit();buildSetup();buildSquads();render();
+/* ===== live sync: phone controls, laptop displays =====
+   Controller: every change is POSTed to /api/state/.   Everyone (incl. display): polls for changes. */
+const CID=Math.random().toString(36).slice(2,10),POLL_MS=600,sqSig=()=>JSON.stringify(S.teams.map(t=>[t.code,t.color,t.p.map(p=>p.n)]));
+let myV=-1,myIV=-1,seenEv=null,pushing=false,dirty=false,blocked=false,firstSync=true,PIN="";
+try{PIN=localStorage.getItem("cs_pin")||""}catch(e){}
+const hdr=()=>({"Content-Type":"application/json","X-Control-Pin":PIN});
+function setConn(ok,msg){const e=$("conn");if(!e)return;if(blocked){e.className="bad";e.textContent="● PIN NEEDED — tap to enter";return}
+ e.className=ok?"ok":"bad";e.textContent=ok?"● LIVE — synced":(msg||"● OFFLINE — retrying…")}
+function askPin(){const p=prompt("Enter the control PIN to change the score:");if(!p)return false;PIN=p.trim();try{localStorage.setItem("cs_pin",PIN)}catch(e){}return true}
+function mkEv(kind,ti,pi,sub){S.ev={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),kind,ti,pi,sub:sub||""};seenEv=S.ev.id}
+async function push(){
+ if(MODE=="display"||blocked)return;
+ if(pushing){dirty=true;return}
+ pushing=true;
+ do{dirty=false;
+  try{const r=await fetch("/api/state/",{method:"POST",headers:hdr(),body:JSON.stringify({state:S,client:CID})});
+   if(r.status==403){if(askPin()){dirty=true;continue}blocked=true;setConn(false);break}
+   if(!r.ok)throw new Error(r.status);
+   myV=(await r.json()).v;setConn(true)}
+  catch(e){setConn(false);await sleep(2000);dirty=true}
+ }while(dirty);
+ pushing=false}
+async function pushImgs(set){
+ if(MODE=="display"||blocked)return;
+ for(let t=0;t<4;t++){
+  try{const r=await fetch("/api/images/",{method:"POST",headers:hdr(),body:JSON.stringify({set,client:CID})});
+   if(r.status==403){if(askPin())continue;blocked=true;setConn(false);return}
+   if(r.ok){myIV=(await r.json()).iv;return}}catch(e){}
+  await sleep(2000)}}
+const canApply=()=>MODE=="display"||(!busy&&!pushing&&!dirty&&!$("modal").className);
+function applyRemote(n,age,first){
+ const was=S,sig0=sqSig();
+ S=Object.assign(DEF(),n);H=[];
+ const e=S.ev;
+ if(e&&e.id!==seenEv){seenEv=e.id;if(!first&&age<10&&S.teams[e.ti])showEv(e.kind,S.teams[e.ti].p[e.pi],e.ti,e.pi,e.sub)}
+ if(S.won&&!was.won&&!first&&age<10)confetti(220);
+ if(MODE!="display"){try{localStorage.setItem("cs5_state",JSON.stringify(S))}catch(x){}}
+ render();syncSetup();if(MODE!="display"&&sqSig()!==sig0)buildSquads()}
+async function poll(){
+ try{
+  const r=await fetch(`/api/state/?v=${myV}&iv=${myIV}&c=${CID}`,{cache:"no-store"});
+  if(!r.ok)throw new Error(r.status);
+  const j=await r.json();
+  if(j.images&&j.iv>0){IMG=j.images;if(MODE!="display"){try{localStorage.setItem("cs4_img",JSON.stringify(IMG))}catch(e){}buildSquads()}render()}
+  if("state" in j){
+   if(j.state){if(canApply()){applyRemote(j.state,j.age==null?999:j.age,firstSync);myV=j.v}}
+   else{myV=j.v;if(MODE!="display")push()}              /* server is empty: this controller seeds it */
+  }else if(j.mine)myV=j.v;
+  if(j.iv==0&&MODE!="display"&&Object.keys(IMG).length&&firstSync)pushImgs(IMG);
+  myIV=j.iv;
+  if(firstSync){firstSync=false;document.body.classList.add("synced")}
+  setConn(true)
+ }catch(e){setConn(false)}
+ setTimeout(poll,POLL_MS)}
+if($("conn"))$("conn").onclick=()=>{if(blocked&&askPin()){blocked=false;push()}};
+if($("durl"))$("durl").textContent=location.origin+"/display/";
+if(MODE=="display")$("vp").addEventListener("dblclick",()=>fs());
+new ResizeObserver(fit).observe($("vp"));fit();buildSetup();buildSquads();render();poll();
 </script>
 </body>
 </html>
