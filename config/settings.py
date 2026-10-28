@@ -129,3 +129,9 @@ CRIC_API_KEY = os.environ.get("CRIC_API_KEY", "")
 MATCH_ID = os.environ.get("MATCH_ID", "")
 POLL_SECONDS = int(os.environ.get("POLL_SECONDS", "30"))
 CRIC_API_BASE = "https://api.cricapi.com/v1"
+
+# --- Live sync between devices (phone controls, laptop displays) ---
+# Only people who know this PIN can change the score. The /display/ page needs no PIN.
+# Set it before going live, e.g.  CONTROL_PIN=4821 python manage.py runserver
+CONTROL_PIN = os.environ.get("CONTROL_PIN", "")
+DATA_UPLOAD_MAX_MEMORY_SIZE = 25 * 1024 * 1024  # team logos / player photos are sent as data URLs
