@@ -1,0 +1,42 @@
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Git
+# Do not ignore .gitignore itself
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Django
+db.sqlite3
+staticfiles/
+
+# Environment variables / secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+
+# IDE / editors
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Documentation build artifacts
+site/
